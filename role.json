@@ -1,0 +1,94 @@
+{
+    "permissionsBoundary": {},
+    "roleName": "pinpoint_timestream_events-role-7461t32j",
+    "policies": [
+      {
+        "document": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": "kinesis:*",
+              "Resource": "*"
+            }
+          ]
+        },
+        "name": "AmazonKinesisFullAccess",
+        "id": "ANPAIVF32HAMOXCUYRAYE",
+        "type": "managed",
+        "arn": "arn:aws:iam::aws:policy/AmazonKinesisFullAccess"
+      },
+      {
+        "document": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": "logs:CreateLogGroup",
+              "Resource": "arn:aws:logs:us-east-1:292920045127:*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "logs:CreateLogStream",
+                "logs:PutLogEvents"
+              ],
+              "Resource": [
+                "arn:aws:logs:us-east-1:292920045127:log-group:/aws/lambda/pinpoint_timestream_events:*"
+              ]
+            }
+          ]
+        },
+        "name": "AWSLambdaBasicExecutionRole-828cc3e3-1a29-4058-9b43-301cb1be589a",
+        "id": "ANPAUIM3FFZD3BEYGFHO2",
+        "type": "managed",
+        "arn": "arn:aws:iam::292920045127:policy/service-role/AWSLambdaBasicExecutionRole-828cc3e3-1a29-4058-9b43-301cb1be589a"
+      },
+      {
+        "document": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": [
+                "timestream:*"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "kms:DescribeKey"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "kms:CreateGrant"
+              ],
+              "Resource": "*",
+              "Condition": {
+                "ForAnyValue:StringEquals": {
+                  "kms:EncryptionContextKeys": "aws:timestream:database-name"
+                },
+                "Bool": {
+                  "kms:GrantIsForAWSResource": true
+                },
+                "StringLike": {
+                  "kms:ViaService": "timestream.*.amazonaws.com"
+                }
+              }
+            }
+          ]
+        },
+        "name": "AmazonTimestreamFullAccess",
+        "id": "ANPAZKAPJZG4CGYUJBH4V",
+        "type": "managed",
+        "arn": "arn:aws:iam::aws:policy/AmazonTimestreamFullAccess"
+      }
+    ],
+    "trustedEntities": [
+      "lambda.amazonaws.com"
+    ]
+  }
