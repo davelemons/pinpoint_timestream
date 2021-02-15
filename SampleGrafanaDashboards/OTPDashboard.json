@@ -1,0 +1,268 @@
+{
+    "annotations": {
+      "list": [
+        {
+          "builtIn": 1,
+          "datasource": "-- Grafana --",
+          "enable": true,
+          "hide": true,
+          "iconColor": "rgba(0, 211, 255, 1)",
+          "name": "Annotations & Alerts",
+          "type": "dashboard"
+        }
+      ]
+    },
+    "editable": true,
+    "gnetId": null,
+    "graphTooltip": 0,
+    "id": null,
+    "links": [],
+    "panels": [
+      {
+        "alert": {
+          "alertRuleTags": {},
+          "conditions": [
+            {
+              "evaluator": {
+                "params": [
+                  600
+                ],
+                "type": "gt"
+              },
+              "operator": {
+                "type": "and"
+              },
+              "query": {
+                "params": [
+                  "A",
+                  "5m",
+                  "now"
+                ]
+              },
+              "reducer": {
+                "params": [],
+                "type": "last"
+              },
+              "type": "query"
+            }
+          ],
+          "executionErrorState": "alerting",
+          "for": "1m",
+          "frequency": "1m",
+          "handler": 1,
+          "message": "Average Country OTP Response Time is Above 5 minutes",
+          "name": "Average Country OTP Response Time is Above 5 minutes",
+          "noDataState": "no_data",
+          "notifications": []
+        },
+        "aliasColors": {},
+        "bars": false,
+        "dashLength": 10,
+        "dashes": false,
+        "datasource": "Amazon Timestream",
+        "description": "Shows the time difference in seconds from SMS Send to OTP entry in App.",
+        "fieldConfig": {
+          "defaults": {
+            "custom": {}
+          },
+          "overrides": []
+        },
+        "fill": 1,
+        "fillGradient": 0,
+        "gridPos": {
+          "h": 19,
+          "w": 19,
+          "x": 0,
+          "y": 0
+        },
+        "hiddenSeries": false,
+        "id": 2,
+        "legend": {
+          "alignAsTable": true,
+          "avg": true,
+          "current": true,
+          "hideEmpty": false,
+          "hideZero": false,
+          "max": true,
+          "min": true,
+          "rightSide": false,
+          "show": true,
+          "total": false,
+          "values": true
+        },
+        "lines": true,
+        "linewidth": 1,
+        "nullPointMode": "null",
+        "options": {
+          "alertThreshold": true
+        },
+        "percentage": false,
+        "pluginVersion": "7.3.5",
+        "pointradius": 2,
+        "points": false,
+        "renderer": "flot",
+        "seriesOverrides": [],
+        "spaceLength": 10,
+        "stack": false,
+        "steppedLine": false,
+        "targets": [
+          {
+            "queryType": "raw",
+            "rawQuery": "WITH binned_timeseries AS (SELECT message_id,\n\t\t\tiso_country_code,\n\t\tmin(case when event_type='_sms.buffered' then time end) as sent,\n\t\tdate_diff('second', min(case when event_type='_sms.buffered' then time end), min(case when event_type='tfa.received' then time end)) as delay\n\tFROM \"PinpointEvents\".\"PinpointEvents\"\n\tWHERE message_id <> ''\n\tGROUP BY message_id, iso_country_code\n\tORDER BY 2 desc)\n, interpolated_timeseries AS (\n\tSELECT \t\n\tiso_country_code, BIN(sent, 1s) as binned_time, avg(delay) as average_delay_sec\n\tFROM binned_timeseries\n\tGROUP BY \t\n\tiso_country_code, BIN(sent, 1s)\n\tORDER BY 2)\nSELECT iso_country_code, CREATE_TIME_SERIES(binned_time, average_delay_sec)\nFROM interpolated_timeseries\nGROUP BY iso_country_code\n\n",
+            "refId": "A"
+          }
+        ],
+        "thresholds": [
+          {
+            "colorMode": "critical",
+            "fill": true,
+            "line": true,
+            "op": "gt",
+            "value": 600
+          }
+        ],
+        "timeFrom": null,
+        "timeRegions": [],
+        "timeShift": null,
+        "title": "OTP Receipt Delay (Seconds)",
+        "tooltip": {
+          "shared": true,
+          "sort": 0,
+          "value_type": "individual"
+        },
+        "type": "graph",
+        "xaxis": {
+          "buckets": null,
+          "mode": "time",
+          "name": null,
+          "show": true,
+          "values": []
+        },
+        "yaxes": [
+          {
+            "format": "short",
+            "label": null,
+            "logBase": 1,
+            "max": null,
+            "min": null,
+            "show": true
+          },
+          {
+            "format": "short",
+            "label": null,
+            "logBase": 1,
+            "max": null,
+            "min": null,
+            "show": true
+          }
+        ],
+        "yaxis": {
+          "align": false,
+          "alignLevel": null
+        }
+      },
+      {
+        "datasource": null,
+        "fieldConfig": {
+          "defaults": {
+            "custom": {},
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "#EAB839",
+                  "value": 400
+                },
+                {
+                  "color": "red",
+                  "value": 600
+                }
+              ]
+            }
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 9,
+          "w": 5,
+          "x": 19,
+          "y": 0
+        },
+        "id": 6,
+        "options": {
+          "reduceOptions": {
+            "calcs": [
+              "mean"
+            ],
+            "fields": "/^average_delay_sec$/",
+            "values": false
+          },
+          "showThresholdLabels": false,
+          "showThresholdMarkers": true
+        },
+        "pluginVersion": "7.3.5",
+        "targets": [
+          {
+            "queryType": "raw",
+            "rawQuery": "WITH binned_timeseries AS (SELECT message_id,\n\t\tmin(case when event_type='_sms.buffered' then time end) as sent,\n\t\tdate_diff('second', min(case when event_type='_sms.buffered' then time end), min(case when event_type='tfa.received' then time end)) as delay\n\tFROM \"PinpointEvents\".\"PinpointEvents\"\n\tWHERE message_id <> ''\n\tGROUP BY message_id\n\tORDER BY 1 desc)\n\tSELECT \t\n\tBIN(sent, 1s) as binned_time, avg(delay) as average_delay_sec\n\tFROM binned_timeseries\n\tGROUP BY \tBIN(sent, 1s)\n\tORDER BY 2",
+            "refId": "A"
+          }
+        ],
+        "timeFrom": null,
+        "timeShift": null,
+        "title": "Average OTP Delay",
+        "type": "gauge"
+      },
+      {
+        "dashboardFilter": "OTP",
+        "dashboardTags": [],
+        "datasource": null,
+        "description": "",
+        "fieldConfig": {
+          "defaults": {
+            "custom": {}
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 10,
+          "w": 5,
+          "x": 19,
+          "y": 9
+        },
+        "id": 4,
+        "limit": 10,
+        "nameFilter": "",
+        "onlyAlertsOnDashboard": false,
+        "pluginVersion": "7.3.5",
+        "show": "current",
+        "sortOrder": 1,
+        "stateFilter": [],
+        "timeFrom": null,
+        "timeShift": null,
+        "title": "Alerts",
+        "type": "alertlist"
+      }
+    ],
+    "refresh": false,
+    "schemaVersion": 26,
+    "style": "dark",
+    "tags": [],
+    "templating": {
+      "list": []
+    },
+    "time": {
+      "from": "2021-02-15T18:15:00.296Z",
+      "to": "2021-02-15T18:16:52.657Z"
+    },
+    "timepicker": {},
+    "timezone": "",
+    "title": "OTP",
+    "uid": "IkizjVEGk",
+    "version": null
+  }

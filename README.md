@@ -2,10 +2,13 @@
 This is a rough POC to see if we can stream [Amazon Pinpoint](https://aws.amazon.com/pinpoint/) (and SES?) events into [Timestream](https://aws.amazon.com/timestream/) to be visualized with Grafana or [Amazon Quicksight](https://aws.amazon.com/quicksight/)
 
 ## Configure Kinesis Data Stream
+[TODO]
 
 ## Configure Pinpoint Event Stream
+[TODO]
 
 ## Configure Timestream Database and Table
+[TODO]
 
 ## Running Grafana Locally
 
@@ -18,7 +21,7 @@ This is a rough POC to see if we can stream [Amazon Pinpoint](https://aws.amazon
 - Credentials Profile Name: leave blank
 - Default Region: Select your region: US-East-1
 - Test your connection and you should be able to see Timestream Databases and Tables.
-- Create Dashboard from `dashboard.json`
+- Create Dashboard from `SampleGrafanaDashboards/PinpointEventsDashboard.json`
 
 ## Scratchpad
 SELECT DISTINCT iso_country_code FROM "PinpointEvents"."PinpointEvents" WHERE event_type = '_sms.buffered'

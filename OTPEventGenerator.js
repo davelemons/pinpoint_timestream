@@ -1,3 +1,8 @@
+/******
+ * This just simulates SMS Sends and OTP Receipts from the Pinpoint Event stream into Timestream.  In reality something
+ * like this would be in a Kinesis Lambda watching for the appropriate events in Pinpoint and pushing them into
+ * Timestream.  Note that this is POC and work should be done to push the appropriate dimensions.
+ */
 const { v4: uuidv4 } = require('uuid');
 const AWS = require('aws-sdk');
 AWS.config.update({ region: "us-east-1" });
@@ -35,22 +40,23 @@ function sleep(ms) {
 } 
 
 async function writeEvents() {
-    console.log("Writing events");
+    //console.log("Writing events");
     var records = [];
     
     //Fake some SMS Records
     for (let index = 0; index < 50; index++) {
         var randomCountry = Math.floor(Math.random() * 5) + 1;
         var fakeMessageID = uuidv4();
+        randomCountryCode = fakeSMSData[randomCountry].iso_country_code
         var time = moment();
-        console.log('randomCountry', randomCountry)
+        //console.log('randomCountry', randomCountry)
         dimensions = [
             {'Name': 'region', 'Value': 'us-east-1'},
             {'Name': 'az', 'Value': 'az1'},
             {'Name': 'event_type', 'Value': "_sms.buffered"},
             {'Name': 'app_id', 'Value': '9b21677b77f34d04b9e9aac5b9a27c11'},
             {'Name': 'message_id', 'Value': fakeMessageID},
-            {'Name': 'iso_country_code', 'Value': fakeSMSData[randomCountry].iso_country_code},
+            {'Name': 'iso_country_code', 'Value': randomCountryCode},
         ];
         fakeSMSBuffered = {
             'Dimensions': dimensions,
@@ -67,10 +73,10 @@ async function writeEvents() {
             {'Name': 'event_type', 'Value': "tfa.received"},
             {'Name': 'app_id', 'Value': '9b21677b77f34d04b9e9aac5b9a27c11'},
             {'Name': 'message_id', 'Value': fakeMessageID},
-            {'Name': 'iso_country_code', 'Value': fakeSMSData[randomCountry].iso_country_code},
+            {'Name': 'iso_country_code', 'Value': randomCountryCode},
         ];
 
-        var simulatedDelaySeconds = randomIntFromInterval(100,600);
+        var simulatedDelaySeconds = randomIntFromInterval(10,1000);
 
         fakeSMSConfirmed = {
             'Dimensions': dimensions,
@@ -83,6 +89,7 @@ async function writeEvents() {
 
         //adding some jitter
         await sleep(simulatedDelaySeconds)
+        console.log('Wrote records for:' , randomCountryCode)
     }
 
     const params = {
@@ -91,7 +98,7 @@ async function writeEvents() {
         Records: records
     };
 
-    console.log(records)
+    //console.log(records)
     
     const promise = writeClient.writeRecords(params).promise();
     
@@ -105,4 +112,12 @@ async function writeEvents() {
     );
 }
 
-writeEvents();
+//Keep going till program is stopped.
+async function eventSimulator() {
+    while(true) {
+        let res = await writeEvents()
+        console.log('Wrote Events to Timestream');
+    };
+}
+
+eventSimulator();

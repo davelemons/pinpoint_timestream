@@ -16,7 +16,7 @@
   "gnetId": null,
   "graphTooltip": 0,
   "id": null,
-  "iteration": 1610747031427,
+  "iteration": 1613414677517,
   "links": [],
   "panels": [
     {
@@ -79,7 +79,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "7.3.6",
+      "pluginVersion": "7.3.5",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -187,6 +187,41 @@
       "type": "alertlist"
     },
     {
+      "alert": {
+        "alertRuleTags": {},
+        "conditions": [
+          {
+            "evaluator": {
+              "params": [
+                30
+              ],
+              "type": "gt"
+            },
+            "operator": {
+              "type": "and"
+            },
+            "query": {
+              "params": [
+                "A",
+                "5m",
+                "now"
+              ]
+            },
+            "reducer": {
+              "params": [],
+              "type": "avg"
+            },
+            "type": "query"
+          }
+        ],
+        "executionErrorState": "alerting",
+        "for": "5m",
+        "frequency": "1m",
+        "handler": 1,
+        "name": "Complaints alert",
+        "noDataState": "no_data",
+        "notifications": []
+      },
       "aliasColors": {},
       "bars": false,
       "dashLength": 10,
@@ -225,7 +260,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "7.3.6",
+      "pluginVersion": "7.3.5",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -246,7 +281,7 @@
           "fill": true,
           "line": true,
           "op": "gt",
-          "value": 25
+          "value": 30
         }
       ],
       "timeFrom": null,
@@ -290,6 +325,41 @@
       }
     },
     {
+      "alert": {
+        "alertRuleTags": {},
+        "conditions": [
+          {
+            "evaluator": {
+              "params": [
+                70
+              ],
+              "type": "gt"
+            },
+            "operator": {
+              "type": "and"
+            },
+            "query": {
+              "params": [
+                "A",
+                "5m",
+                "now"
+              ]
+            },
+            "reducer": {
+              "params": [],
+              "type": "avg"
+            },
+            "type": "query"
+          }
+        ],
+        "executionErrorState": "alerting",
+        "for": "5m",
+        "frequency": "1m",
+        "handler": 1,
+        "name": "Bounces alert",
+        "noDataState": "no_data",
+        "notifications": []
+      },
       "aliasColors": {},
       "bars": false,
       "dashLength": 10,
@@ -328,7 +398,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "7.3.6",
+      "pluginVersion": "7.3.5",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -354,7 +424,7 @@
           "fill": true,
           "line": true,
           "op": "gt",
-          "value": 55
+          "value": 70
         }
       ],
       "timeFrom": null,
@@ -436,7 +506,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "7.3.6",
+      "pluginVersion": "7.3.5",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -563,12 +633,12 @@
     ]
   },
   "time": {
-    "from": "2021-01-15T20:00:07.652Z",
-    "to": "2021-01-15T20:04:45.407Z"
+    "from": "2021-01-27T20:01:00.697Z",
+    "to": "2021-01-27T20:03:05.230Z"
   },
   "timepicker": {},
   "timezone": "",
   "title": "Pinpoint Events",
-  "uid": "r__XJzoMz",
+  "uid": "vnUsYnLGz",
   "version": null
 }
