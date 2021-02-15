@@ -75,6 +75,7 @@ async function writeEvent(event) {
         {'Name': 'az', 'Value': 'az1'},
         {'Name': 'event_type', 'Value': "_sms.buffered"},
         {'Name': 'app_id', 'Value': event.application.app_id},
+        {'Name': 'message_id', 'Value': event.application.app_id},
         {'Name': 'iso_country_code', 'Value': fakeSMSData[randomCountry].iso_country_code},
     ];
     fakeSMS = {

@@ -15,8 +15,8 @@
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
-  "id": 1,
-  "iteration": 1609961543643,
+  "id": null,
+  "iteration": 1610747031427,
   "links": [],
   "panels": [
     {
@@ -187,41 +187,6 @@
       "type": "alertlist"
     },
     {
-      "alert": {
-        "alertRuleTags": {},
-        "conditions": [
-          {
-            "evaluator": {
-              "params": [
-                25
-              ],
-              "type": "gt"
-            },
-            "operator": {
-              "type": "and"
-            },
-            "query": {
-              "params": [
-                "A",
-                "5m",
-                "now"
-              ]
-            },
-            "reducer": {
-              "params": [],
-              "type": "avg"
-            },
-            "type": "query"
-          }
-        ],
-        "executionErrorState": "alerting",
-        "for": "5m",
-        "frequency": "1m",
-        "handler": 1,
-        "name": "Complaints alert",
-        "noDataState": "ok",
-        "notifications": []
-      },
       "aliasColors": {},
       "bars": false,
       "dashLength": 10,
@@ -325,41 +290,6 @@
       }
     },
     {
-      "alert": {
-        "alertRuleTags": {},
-        "conditions": [
-          {
-            "evaluator": {
-              "params": [
-                55
-              ],
-              "type": "gt"
-            },
-            "operator": {
-              "type": "and"
-            },
-            "query": {
-              "params": [
-                "A",
-                "5m",
-                "now"
-              ]
-            },
-            "reducer": {
-              "params": [],
-              "type": "avg"
-            },
-            "type": "query"
-          }
-        ],
-        "executionErrorState": "alerting",
-        "for": "5m",
-        "frequency": "1m",
-        "handler": 1,
-        "name": "Bounces alert",
-        "noDataState": "no_data",
-        "notifications": []
-      },
       "aliasColors": {},
       "bars": false,
       "dashLength": 10,
@@ -518,7 +448,7 @@
         {
           "hide": false,
           "queryType": "raw",
-          "rawQuery": "SELECT BIN(time, 1s) AS time_bin, count(measure_value::double) as \"cost\"\nFROM \"PinpointEvents\".\"PinpointEvents\"\nWHERE event_type = '_sms.buffered' AND iso_country_code IN (${SMS_COUNTRY_CODE:sqlstring})\nGROUP BY BIN(time, 1s)\nORDER BY time_bin asc\n",
+          "rawQuery": "SELECT BIN(time, 1s) AS time_bin, sum(measure_value::double) as \"cost\"\nFROM \"PinpointEvents\".\"PinpointEvents\"\nWHERE event_type = '_sms.buffered' AND iso_country_code IN (${SMS_COUNTRY_CODE:sqlstring})\nGROUP BY BIN(time, 1s)\nORDER BY time_bin asc\n",
           "refId": "A"
         }
       ],
@@ -596,36 +526,36 @@
           },
           {
             "selected": false,
-            "text": "'US'",
-            "value": "'US'"
+            "text": "US",
+            "value": "US"
           },
           {
             "selected": false,
-            "text": "'BR'",
-            "value": "'BR'"
+            "text": "BR",
+            "value": "BR"
           },
           {
             "selected": false,
-            "text": "'UK'",
-            "value": "'UK'"
+            "text": "UK",
+            "value": "UK"
           },
           {
             "selected": false,
-            "text": "'JP'",
-            "value": "'JP'"
+            "text": "JP",
+            "value": "JP"
           },
           {
             "selected": false,
-            "text": "'FR'",
-            "value": "'FR'"
+            "text": "FR",
+            "value": "FR"
           },
           {
             "selected": false,
-            "text": "'ZA'",
-            "value": "'ZA'"
+            "text": "ZA",
+            "value": "ZA"
           }
         ],
-        "query": "'US','BR','UK','JP','FR','ZA'",
+        "query": "US,BR,UK,JP,FR,ZA",
         "queryValue": "",
         "skipUrlSync": false,
         "type": "custom"
@@ -633,12 +563,12 @@
     ]
   },
   "time": {
-    "from": "2021-01-05T20:00:33.224Z",
-    "to": "2021-01-05T20:03:25.054Z"
+    "from": "2021-01-15T20:00:07.652Z",
+    "to": "2021-01-15T20:04:45.407Z"
   },
   "timepicker": {},
   "timezone": "",
   "title": "Pinpoint Events",
   "uid": "r__XJzoMz",
-  "version": 13
+  "version": null
 }
