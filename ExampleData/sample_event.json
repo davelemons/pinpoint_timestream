@@ -1,0 +1,91 @@
+{
+    "event_type": "_email.delivered",
+    "event_timestamp": 1610049702938,
+    "arrival_timestamp": 1610050423597,
+    "event_version": "3.1",
+    "application": {
+        "app_id": "9b21677b77f34d04b9e9aac5b9a27c11",
+        "sdk": {}
+    },
+    "client": {
+        "client_id": "316901509642930255075633368668974394175"
+    },
+    "device": {
+        "platform": {}
+    },
+    "session": {},
+    "attributes": {
+        "feedback": "delivered",
+        "campaign_activity_id": "88c99ebf3a304e29852b9f3e10e7223e",
+        "treatment_id": "0",
+        "campaign_id": "ca4b474c2ee34aeaa8e578a87c3f51fb",
+        "tags": null
+    },
+    "client_context": {
+        "custom": {
+            "legacy_identifier": "9b21677b77f34d04b9e9aac5b9a27c11"
+        }
+    },
+    "awsAccountId": "180670599198",
+    "facets": {
+        "email_channel": {
+            "mail_event": {
+                "mail": {
+                    "message_id": "0200000084dcn015-kvh65h5s-8524-bubi-oapa-ccvo906pivo0-000000",
+                    "message_send_timestamp": 1610049702938,
+                    "from_address": "from@centiric.com",
+                    "destination": [
+                        "success+Christopher-Williams@simulator.amazonses.com"
+                    ],
+                    "headers_truncated": false,
+                    "headers": [
+                        {
+                            "name": "Date",
+                            "value": "Thu, 7 Jan 2021 20:01:43 +0000"
+                        },
+                        {
+                            "name": "From",
+                            "value": "from@centiric.com"
+                        },
+                        {
+                            "name": "To",
+                            "value": "success+Christopher-Williams@simulator.amazonses.com"
+                        },
+                        {
+                            "name": "Message-ID",
+                            "value": "<865891306.147849.1610049703133.JavaMail.ec2-user@ip-10-0-188-200.ec2.internal>"
+                        },
+                        {
+                            "name": "Subject",
+                            "value": "Whole foods!"
+                        },
+                        {
+                            "name": "MIME-Version",
+                            "value": "1.0"
+                        },
+                        {
+                            "name": "Content-Type",
+                            "value": "multipart/alternative;  boundary=\"----=_Part_147848_672432886.1610049703128\""
+                        }
+                    ],
+                    "common_headers": {
+                        "from": "from@centiric.com",
+                        "date": "Thu, 7 Jan 2021 20:01:43 +0000",
+                        "to": [
+                            "success+Christopher-Williams@simulator.amazonses.com"
+                        ],
+                        "subject": "Whole foods!"
+                    }
+                },
+                "delivery": {
+                    "smtp_response": "250 2.6.0 Message received",
+                    "reporting_mta": "a11-165.smtp-out.amazonses.com",
+                    "recipients": [
+                        "success+Christopher-Williams@simulator.amazonses.com"
+                    ],
+                    "processing_time_millis": 720659
+                }
+            }
+        }
+    }
+}

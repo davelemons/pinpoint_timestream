@@ -1,6 +1,6 @@
 module.exports = {
-  parseEvent: function(event, records) {
-    console.log('Parsing email_delivered...');
+  parseEvent: function(event, records, log) {
+    log.trace('Parsing email_delivered...');
     var record = global.parseCommonEvents(event, records);
 
     //We have a processing time metric so write additional metric for the processing time

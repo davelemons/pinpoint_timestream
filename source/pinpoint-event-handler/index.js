@@ -5,6 +5,8 @@ var https = require('https');
 var moment = require('moment');
 var requireDir = require('require-dir');
 var dir = requireDir('./parsers');
+var log = require('loglevel');
+log.setLevel(process.env.LOG_LEVEL)
 var agent = new https.Agent({
     maxSockets: 5000
 });
@@ -18,7 +20,7 @@ const writeClient = new AWS.TimestreamWrite({
     });  
 
 global.parseCommonEvents = function(event, records){
-    console.log('parseGeneral Called!');
+    log.trace('parseGeneral Called!');
     
     //Standard Dimensions
     var dimensions = [
@@ -49,45 +51,47 @@ global.parseCommonEvents = function(event, records){
 };
 
 async function writeEvent(event, records) {
-    console.log("Writing event");
+    log.trace("Writing event");
     var parser = event.event_type.replace('_','').replace('.','_');
 
     if (typeof dir[parser] === 'object'){
-        dir[parser].parseEvent(event, records);
+        dir[parser].parseEvent(event, records, log);
     } else {
-        console.log(`An event parser for ${event.event_type} was not found.`);
+        log.error(`An event parser for ${event.event_type} was not found.`);
     }
 
 }
 
 exports.handler = async (event, context) => {
-    console.log('Received event:', JSON.stringify(event, null, 2));
+    log.info(`Received: ${event.Records.length} records.`)
+    log.debug('Received event:', JSON.stringify(event, null, 2));
     var records = [];
     for (const record of event.Records) {
         // Kinesis data is base64 encoded so decode here
         const payload = Buffer.from(record.kinesis.data, 'base64').toString('ascii');
-        console.log('Decoded payload:', payload);
+        log.trace('Decoded payload:', payload);
         await writeEvent(JSON.parse(payload), records);
     }
 
     const params = {
-        DatabaseName: "PinpointEvents",
-        TableName: "PinpointEvents", //TODO: may want different tables for different events.
+        DatabaseName: process.env.TIMESTREAM_DATABASE,
+        TableName: process.env.TIMESTREAM_TABLE, //TODO: may want different tables for different events.
         Records: records
     };
 
-    console.log(records);
+    log.trace(records);
  
     const promise = writeClient.writeRecords(params).promise();
  
     await promise.then(
         (data) => {
-            console.log("Write records successful");
+            log.debug("Write records successful");
         },
         (err) => {
-            console.log("Error writing records:", err);
+            log.error("Error writing records:", err);
         }
     );
 
+    log.info(`Successfully processed ${event.Records.length} records.`)
     return `Successfully processed ${event.Records.length} records.`;
 };

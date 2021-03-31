@@ -1,6 +1,6 @@
 module.exports = {
-    parseEvent: function(event, records) {
-      console.log('Parsing monetization_purchase...');
+    parseEvent: function(event, records, log) {
+    log.trace('Parsing monetization_purchase...');
       var record = global.parseCommonEvents(event, records);
       records.push(record);
     }

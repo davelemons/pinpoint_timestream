@@ -1,0 +1,177 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Amazon Pinpoint Events to Timestream
+
+Parameters:
+  PinpointProjectId:
+    Type: String
+    Description: Amazon Pinpoint Project ID if one already exists, leave blank to create one.  Ensure existing Pinpoint Event Stream is removed.
+    Default: "d0db652409984df8ab95faadc0b80ae6"
+    AllowedPattern: ^[a-zA-Z0-9]*$
+  PinpointProjectName:
+    Type: String
+    Default: "My Pinpoint Project"
+    Description: "If no PinpointProjectId provided, name to be used to create the Pinpoint project"
+
+Conditions:
+  NeedsPinpointProjectId: !Equals ['', !Ref PinpointProjectId]
+
+Resources:
+
+  PinpointProject:
+    Type: AWS::Pinpoint::App
+    Condition: NeedsPinpointProjectId
+    DeletionPolicy: Retain
+    Properties:
+      Name: !Ref PinpointProjectName
+
+  TimestreamDatabase:
+    Type: AWS::Timestream::Database
+
+  TimestreamTable:
+    Type: AWS::Timestream::Table
+    DependsOn: TimestreamDatabase
+    Properties:
+      TableName: "PinpointEvents"
+      DatabaseName: !Ref TimestreamDatabase
+      RetentionProperties:
+        MemoryStoreRetentionPeriodInHours: "48"
+        MagneticStoreRetentionPeriodInDays: "14"
+
+  KinesisDataStream: 
+    Type: AWS::Kinesis::Stream 
+    Properties: 
+        RetentionPeriodHours: 24 
+        ShardCount: 1 
+        StreamEncryption:
+            EncryptionType: KMS 
+            KeyId: "alias/aws/kinesis" 
+
+  PinpointKinesisStreamRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - pinpoint.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Path: "/"
+      Policies:
+        -
+          PolicyName: "root"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Action:
+                  - "kinesis:PutRecords"
+                  - "kinesis:DescribeStream"
+                Resource: !GetAtt KinesisDataStream.Arn
+
+  PinpointKinesisDataStreamHandlerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - "sts:AssumeRole"
+      Path: "/"
+      Policies:
+        -
+          PolicyName: "root"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                  Effect: Allow
+                  Action: 
+                    - "kinesis:DescribeStream"
+                    - "kinesis:DescribeStreamSummary"
+                    - "kinesis:GetRecords"
+                    - "kinesis:GetShardIterator"
+                    - "kinesis:ListShards"
+                    - "kinesis:ListStreams"
+                    - "kinesis:SubscribeToShard"
+                  Resource: !GetAtt KinesisDataStream.Arn
+              -
+                  Effect: Allow
+                  Action: 
+                    - "timestream:WriteRecords"
+                  Resource: !GetAtt TimestreamTable.Arn
+              -
+                  Effect: Allow
+                  Action: 
+                    - "timestream:DescribeEndpoints"
+                  Resource: "*" #TODO Need to figure out how to lock this down more
+              -
+                  Effect: "Allow"
+                  Action:
+                    - "logs:CreateLogGroup"
+                    - "logs:CreateLogStream"
+                    - "logs:PutLogEvents"
+                  Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:*"
+
+  PinpointKinesisDataStreamHandler:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code: source/pinpoint-event-handler
+      Handler: index.handler
+      Runtime: nodejs14.x
+      Timeout: 120
+      MemorySize: 512
+      Role: !GetAtt PinpointKinesisDataStreamHandlerRole.Arn
+      Environment:
+        Variables:
+          TIMESTREAM_DATABASE: !Ref TimestreamDatabase
+          TIMESTREAM_TABLE: "PinpointEvents"
+          LOG_LEVEL: "info"
+
+  FunctionEventSourceMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      EventSourceArn:
+        Fn::Join:
+          - ""
+          -
+            - "arn:aws:kinesis:"
+            -
+              Ref: "AWS::Region"
+            - ":"
+            -
+              Ref: "AWS::AccountId"
+            - ":stream/"
+            -
+              Ref: "KinesisDataStream"
+      FunctionName:
+        Fn::GetAtt:
+          - "PinpointKinesisDataStreamHandler"
+          - "Arn"
+      StartingPosition: "TRIM_HORIZON"
+      MaximumBatchingWindowInSeconds: 60
+
+
+  #### KINESIS FIREHOSE - Pinpoint
+  #######################################
+  PinpointEventStream:
+    Type: AWS::Pinpoint::EventStream
+    Properties:
+      ApplicationId: !If
+        - NeedsPinpointProjectId
+        - !Ref PinpointProject
+        - !Ref PinpointProjectId
+      DestinationStreamArn: !GetAtt KinesisDataStream.Arn
+      RoleArn: !GetAtt PinpointKinesisStreamRole.Arn
+
+Outputs:
+  TimestreamDatabase:
+    Description: "The Timestream Database "
+    Value: !Ref TimestreamDatabase
