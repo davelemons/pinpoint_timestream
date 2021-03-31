@@ -1,14 +1,12 @@
 # Pinpoint/SES Events to Timestream to Grafana [WIP]
 This is a rough POC to see if we can stream [Amazon Pinpoint](https://aws.amazon.com/pinpoint/) (and SES?) events into [Timestream](https://aws.amazon.com/timestream/) to be visualized with Grafana or [Amazon Quicksight](https://aws.amazon.com/quicksight/)
 
-## Configure Kinesis Data Stream
-[TODO]
-
-## Configure Pinpoint Event Stream
-[TODO]
-
-## Configure Timestream Database and Table
-[TODO]
+## Instructions
+- Create S3 Bucket to hold build artifacts
+- `aws cloudformation package --template template.yaml --s3-bucket [Bucket Name From Above] --output yaml --output-template-file packaged-template.yaml`
+- `aws cloudformation deploy --template-file packaged-template.yaml --stack-name pinpoint-timestream --capabilities CAPABILITY_IAM`
+- Run Grafana.  Use AWS Managed Grafana, Run Locally (See Below), or use Hosted Grafana
+- Connect to Timestream: https://grafana.com/grafana/plugins/grafana-timestream-datasource/ 
 
 ## Running Grafana Locally
 
