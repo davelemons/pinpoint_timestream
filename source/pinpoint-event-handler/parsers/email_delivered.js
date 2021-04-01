@@ -1,7 +1,6 @@
 module.exports = {
-  parseEvent: function(event, records, log) {
+  parseEvent: function(event, record, records, log) {
     log.trace('Parsing email_delivered...');
-    var record = global.parseCommonEvents(event, records);
 
     //We have a processing time metric so write additional metric for the processing time
     if (event.facets.email_channel.mail_event.delivery && event.facets.email_channel.mail_event.delivery.processing_time_millis){
@@ -15,6 +14,6 @@ module.exports = {
         records.push(processingTime);
     }
     
-    records.push(record);
+    return record;
   }
 }

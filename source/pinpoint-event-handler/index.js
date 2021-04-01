@@ -6,7 +6,7 @@ var moment = require('moment');
 var requireDir = require('require-dir');
 var dir = requireDir('./parsers');
 var log = require('loglevel');
-log.setLevel(process.env.LOG_LEVEL)
+log.setLevel(process.env.LOG_LEVEL);
 var agent = new https.Agent({
     maxSockets: 5000
 });
@@ -19,7 +19,7 @@ const writeClient = new AWS.TimestreamWrite({
         }
     });  
 
-global.parseCommonEvents = function(event, records){
+const parseCommonEvents = function(event, records){
     log.trace('parseGeneral Called!');
     
     //Standard Dimensions
@@ -27,18 +27,30 @@ global.parseCommonEvents = function(event, records){
         {'Name': 'region', 'Value': process.env.AWS_REGION}
     ];
 
+    //General
     if(event.event_type) dimensions.push({'Name': 'event_type', 'Value': event.event_type});
     if(event.awsAccountId) dimensions.push({'Name': 'awsAccountId', 'Value': event.awsAccountId});
     if(event.application) dimensions.push({'Name': 'app_id', 'Value': event.application.app_id});
+    
+    //Campaign
     if(event.attributes && event.attributes.campaign_id) dimensions.push({'Name': 'campaign_id', 'Value': event.attributes.campaign_id});
-    if(event.attributes && event.attributes.treatment_id) dimensions.push({'Name': 'treatment_id', 'Value': event.attributes.treatment_id});
+    if(event.attributes && event.attributes.campaign_activity_id) dimensions.push({'Name': 'campaign_activity_id', 'Value': event.attributes.campaign_activity_id});
+
+    //Journeys
+    if(event.attributes && event.attributes.journey_id) dimensions.push({'Name': 'journey_id', 'Value': event.attributes.journey_id});
+    if(event.attributes && event.attributes.journey_activity_id) dimensions.push({'Name': 'journey_activity_id', 'Value': event.attributes.journey_activity_id});
+    if(event.attributes && event.attributes.journey_activity_type) dimensions.push({'Name': 'journey_activity_type', 'Value': event.attributes.journey_activity_type});
+    if(event.attributes && event.attributes.journey_send_status) dimensions.push({'Name': 'journey_send_status', 'Value': event.attributes.journey_send_status});
+
+    //SMS
+    if(event.attributes && event.attributes.origination_phone_number) dimensions.push({'Name': 'origination_phone_number', 'Value': event.attributes.origination_phone_number});
+    if(event.attributes && event.attributes.iso_country_code) dimensions.push({'Name': 'iso_country_code', 'Value': event.attributes.iso_country_code});
+    if(event.attributes && event.attributes.message_id) dimensions.push({'Name': 'message_id', 'Value': event.attributes.message_id});
 
     //Common Email Events
     if (event.facets && event.facets.email_channel && event.facets.email_channel.mail_event){
         //From Address:
         if(event.facets.email_channel.mail_event.mail.from_address) dimensions.push({'Name': 'from_address', 'Value': event.facets.email_channel.mail_event.mail.from_address});
-
-        //TODO: add common attributes for email.
     }
 
     return {
@@ -52,13 +64,18 @@ global.parseCommonEvents = function(event, records){
 
 async function writeEvent(event, records) {
     log.trace("Writing event");
-    var parser = event.event_type.replace('_','').replace('.','_');
+    var parser = event.event_type.replace('_','').replace('.','_').toLowerCase();
 
+    var record = parseCommonEvents(event, records);
+
+    //See if we have any special parsers.  The parser can enhance the existing record or if needed add 
+    //additional metrics to the records collection.  For example the sms_buffered parser will add 2 additional metrics for cost and message parts
+    //If you need to handle other events differently just add a parser to the folder matching the event name minus the initial underscore)
     if (typeof dir[parser] === 'object'){
-        dir[parser].parseEvent(event, records, log);
-    } else {
-        log.error(`An event parser for ${event.event_type} was not found.`);
-    }
+        dir[parser].parseEvent(event, record, records, log);
+    } 
+
+    records.push(record);
 
 }
 
@@ -79,16 +96,20 @@ exports.handler = async (event, context) => {
         Records: records
     };
 
-    log.trace(records);
+    log.trace(JSON.stringify(records, null, 2));
  
-    const promise = writeClient.writeRecords(params).promise();
- 
-    await promise.then(
+    const promiseWithDuplicateRequest = writeClient.writeRecords(params);
+    await promiseWithDuplicateRequest.promise().then(
         (data) => {
             log.debug("Write records successful");
         },
-        (err) => {
+        (err, data) => {
             log.error("Error writing records:", err);
+
+            //Get any rejected records
+            const responsePayload = JSON.parse(promiseWithDuplicateRequest.response.httpResponse.body.toString());
+            log.info("RejectedRecords: ", responsePayload.RejectedRecords);
+            throw err;
         }
     );
 
