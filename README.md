@@ -1,6 +1,9 @@
 # Pinpoint/SES Events to Timestream to Grafana [WIP]
 This is a rough POC to see if we can stream [Amazon Pinpoint](https://aws.amazon.com/pinpoint/) (and SES?) events into [Timestream](https://aws.amazon.com/timestream/) to be visualized with Grafana or [Amazon Quicksight](https://aws.amazon.com/quicksight/)
 
+## Architecture
+![architecture](architecture.png)
+
 ## Instructions
 - Create S3 Bucket to hold build artifacts
 - `aws cloudformation package --template template.yaml --s3-bucket [Bucket Name From Above] --output yaml --output-template-file packaged-template.yaml`
@@ -20,6 +23,3 @@ This is a rough POC to see if we can stream [Amazon Pinpoint](https://aws.amazon
 - Default Region: Select your region: US-East-1
 - Test your connection and you should be able to see Timestream Databases and Tables.
 - Create Dashboard from `SampleGrafanaDashboards/PinpointEventsDashboard.json`
-
-## Scratchpad
-SELECT DISTINCT iso_country_code FROM "PinpointEvents"."PinpointEvents" WHERE event_type = '_sms.buffered'
