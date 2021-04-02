@@ -2,7 +2,6 @@
 const AWS = require('aws-sdk');
 AWS.config.update({ region: "us-east-1" });
 var https = require('https');
-var moment = require('moment');
 var requireDir = require('require-dir');
 var dir = requireDir('./parsers');
 var log = require('loglevel');
@@ -80,13 +79,22 @@ async function writeEvent(event, records) {
 }
 
 exports.handler = async (event, context) => {
-    log.info(`Received: ${event.Records.length} records.`)
+    log.info(`Received: ${event.records.length} records.`);
     log.debug('Received event:', JSON.stringify(event, null, 2));
     var records = [];
-    for (const record of event.Records) {
+    var output = []; //will need to pass un-altered records back to Kinesis
+    for (const record of event.records) {
+        output.push({
+            /* This transformation is the "identity" transformation, the data is left intact */
+            recordId: record.recordId,
+            result: 'Ok',
+            data: record.data,
+        });
+
         // Kinesis data is base64 encoded so decode here
-        const payload = Buffer.from(record.kinesis.data, 'base64').toString('ascii');
+        const payload = Buffer.from(record.data, 'base64').toString('ascii');
         log.trace('Decoded payload:', payload);
+
         await writeEvent(JSON.parse(payload), records);
     }
 
@@ -113,6 +121,6 @@ exports.handler = async (event, context) => {
         }
     );
 
-    log.info(`Successfully processed ${event.Records.length} records.`)
-    return `Successfully processed ${event.Records.length} records.`;
+    log.info(`Successfully processed ${event.records.length} records.`);
+    return { records: output };
 };
