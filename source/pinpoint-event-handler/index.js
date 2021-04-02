@@ -50,6 +50,9 @@ const parseCommonEvents = function(event, records){
     if (event.facets && event.facets.email_channel && event.facets.email_channel.mail_event){
         //From Address:
         if(event.facets.email_channel.mail_event.mail.from_address) dimensions.push({'Name': 'from_address', 'Value': event.facets.email_channel.mail_event.mail.from_address});
+        
+        //MessageID:
+        if(event.facets.email_channel.mail_event.mail.message_id) dimensions.push({'Name': 'message_id', 'Value': event.facets.email_channel.mail_event.mail.message_id});
     }
 
     return {

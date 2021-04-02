@@ -24,6 +24,84 @@ Resources:
     Properties:
       Name: !Ref PinpointProjectName
 
+  ##### S3 BUCKETS
+  #######################################
+
+  PinpointEventsBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W51
+            reason: Not public facing.
+    Properties:
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: True
+        BlockPublicPolicy: True
+        IgnorePublicAcls: True
+        RestrictPublicBuckets: True
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      LoggingConfiguration:
+        DestinationBucketName: !Ref LogBucket
+        LogFilePrefix: pinpoint-event-processing/
+
+  LogBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W35
+            reason: This is the log bucket.
+    Properties:
+      AccessControl: LogDeliveryWrite
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: True
+        BlockPublicPolicy: True
+        IgnorePublicAcls: True
+        RestrictPublicBuckets: True
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+
+  LogBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref LogBucket
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+        - Sid: AWSCloudTrailAclCheck
+          Effect: Allow
+          Principal:
+            Service: cloudtrail.amazonaws.com
+          Action: "s3:GetBucketAcl"
+          Resource: !Sub arn:aws:s3:::${LogBucket}
+        - Sid: AWSCloudTrailWrite
+          Effect: Allow
+          Principal:
+            Service: cloudtrail.amazonaws.com
+          Action: "s3:PutObject"
+          Resource: !Sub arn:aws:s3:::${LogBucket}/AWSLogs/${AWS::AccountId}/*
+          Condition:
+            StringEquals:
+              "s3:x-amz-acl": "bucket-owner-full-control"
+        - Sid: LogBucketAllowSSLRequestsOnly
+          Effect: Deny
+          Principal: "*"
+          Action: "s3:*"
+          Resource:
+            - !Sub "arn:aws:s3:::${LogBucket}/*"
+            - !Sub "arn:aws:s3:::${LogBucket}"
+          Condition:
+            Bool:
+              "aws:SecureTransport": "false"
+
   TimestreamDatabase:
     Type: AWS::Timestream::Database
 
@@ -37,14 +115,90 @@ Resources:
         MemoryStoreRetentionPeriodInHours: "48"
         MagneticStoreRetentionPeriodInDays: "14"
 
-  KinesisDataStream: 
-    Type: AWS::Kinesis::Stream 
-    Properties: 
-        RetentionPeriodHours: 24 
-        ShardCount: 1 
-        StreamEncryption:
-            EncryptionType: KMS 
-            KeyId: "alias/aws/kinesis" 
+  # KinesisDataStream: 
+  #   Type: AWS::Kinesis::Stream 
+  #   Properties: 
+  #       RetentionPeriodHours: 24 
+  #       ShardCount: 1 
+  #       StreamEncryption:
+  #           EncryptionType: KMS 
+  #           KeyId: "alias/aws/kinesis" 
+
+  # PinpointKinesisStreamRole:
+  #   Type: AWS::IAM::Role
+  #   Properties:
+  #     AssumeRolePolicyDocument:
+  #       Version: 2012-10-17
+  #       Statement:
+  #         - Effect: Allow
+  #           Principal:
+  #             Service:
+  #               - pinpoint.amazonaws.com
+  #           Action:
+  #             - 'sts:AssumeRole'
+  #     Path: "/"
+  #     Policies:
+  #       -
+  #         PolicyName: "root"
+  #         PolicyDocument:
+  #           Version: "2012-10-17"
+  #           Statement:
+  #             -
+  #               Effect: "Allow"
+  #               Action:
+  #                 - "kinesis:PutRecords"
+  #                 - "kinesis:DescribeStream"
+  #               Resource: !GetAtt KinesisDataStream.Arn
+
+    #### KINESIS FIREHOSE - Pinpoint
+  #######################################
+
+  PinpointEventStream:
+    Type: AWS::Pinpoint::EventStream
+    Properties:
+      ApplicationId: !If
+        - NeedsPinpointProjectId
+        - !Ref PinpointProject
+        - !Ref PinpointProjectId
+      DestinationStreamArn: !GetAtt PinpointEventFirehose.Arn
+      RoleArn: !GetAtt PinpointKinesisStreamRole.Arn
+
+  PinpointEventFirehose:
+    Type: AWS::KinesisFirehose::DeliveryStream
+    Properties:
+      DeliveryStreamType: "DirectPut"
+      ExtendedS3DestinationConfiguration:
+        BucketARN: !GetAtt PinpointEventsBucket.Arn
+        BufferingHints:
+          IntervalInSeconds: 60
+          SizeInMBs: 128
+        CompressionFormat: "UNCOMPRESSED"
+        Prefix: "events/"
+        ErrorOutputPrefix: "errors/"
+        RoleARN: !GetAtt PinpointKinesisFirehoseRole.Arn
+        ProcessingConfiguration:
+          Enabled: true
+          Processors:
+            - Parameters:
+                - ParameterName: LambdaArn
+                  ParameterValue: !GetAtt PinpointKinesisDataStreamHandler.Arn 
+              Type: Lambda 
+        CloudWatchLoggingOptions:
+          Enabled: true
+          LogGroupName: !Sub "/aws/kinesisfirehose/${AWS::StackName}-pinpoint-eventstream-firehose"
+          LogStreamName: "S3DeliveryErrors"
+
+  KinesisFirehoseLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/kinesisfirehose/${AWS::StackName}-pinpoint-eventstream-firehose"
+
+  KinesisFirehoseLogStreamName:
+    Type: AWS::Logs::LogStream
+    DependsOn: KinesisFirehoseLogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/kinesisfirehose/${AWS::StackName}-pinpoint-eventstream-firehose"
+      LogStreamName: "S3DeliveryErrors"
 
   PinpointKinesisStreamRole:
     Type: AWS::IAM::Role
@@ -68,9 +222,69 @@ Resources:
               -
                 Effect: "Allow"
                 Action:
-                  - "kinesis:PutRecords"
-                  - "kinesis:DescribeStream"
-                Resource: !GetAtt KinesisDataStream.Arn
+                  - "firehose:PutRecordBatch"
+                  - "firehose:DescribeDeliveryStream"
+                Resource: !GetAtt PinpointEventFirehose.Arn
+
+  PinpointKinesisFirehoseRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - firehose.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Path: "/"
+      Policies:
+        -
+          PolicyName: "root"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Action:
+                  - "s3:AbortMultipartUpload"
+                  - "s3:GetBucketLocation"
+                  - "s3:GetObject"
+                  - "s3:ListBucket"
+                  - "s3:ListBucketMultipartUploads"
+                  - "s3:PutObject"
+                Resource:
+                  - !Join 
+                    - ''
+                    - - 'arn:aws:s3:::'
+                      - !Ref PinpointEventsBucket
+                  - !Join 
+                    - ''
+                    - - 'arn:aws:s3:::'
+                      - !Ref PinpointEventsBucket
+                      - '*'
+              -
+                Effect: "Allow"
+                Action: "logs:PutLogEvents"
+                Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/kinesisfirehose/*:log-stream:*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "lambda:InvokeFunction"
+                  - "lambda:GetFunctionConfiguration"
+                Resource: 
+                  - !Join 
+                    - ''
+                    - - !GetAtt PinpointKinesisDataStreamHandler.Arn
+                      - ':*'
 
   PinpointKinesisDataStreamHandlerRole:
     Type: AWS::IAM::Role
@@ -91,17 +305,6 @@ Resources:
           PolicyDocument:
             Version: "2012-10-17"
             Statement:
-              -
-                  Effect: Allow
-                  Action: 
-                    - "kinesis:DescribeStream"
-                    - "kinesis:DescribeStreamSummary"
-                    - "kinesis:GetRecords"
-                    - "kinesis:GetShardIterator"
-                    - "kinesis:ListShards"
-                    - "kinesis:ListStreams"
-                    - "kinesis:SubscribeToShard"
-                  Resource: !GetAtt KinesisDataStream.Arn
               -
                   Effect: Allow
                   Action: 
@@ -135,43 +338,46 @@ Resources:
           TIMESTREAM_TABLE: "PinpointEvents"
           LOG_LEVEL: "info"
 
-  FunctionEventSourceMapping:
-    Type: AWS::Lambda::EventSourceMapping
-    Properties:
-      EventSourceArn:
-        Fn::Join:
-          - ""
-          -
-            - "arn:aws:kinesis:"
-            -
-              Ref: "AWS::Region"
-            - ":"
-            -
-              Ref: "AWS::AccountId"
-            - ":stream/"
-            -
-              Ref: "KinesisDataStream"
-      FunctionName:
-        Fn::GetAtt:
-          - "PinpointKinesisDataStreamHandler"
-          - "Arn"
-      StartingPosition: "TRIM_HORIZON"
-      MaximumBatchingWindowInSeconds: 60
+  # FunctionEventSourceMapping:
+  #   Type: AWS::Lambda::EventSourceMapping
+  #   Properties:
+  #     EventSourceArn:
+  #       Fn::Join:
+  #         - ""
+  #         -
+  #           - "arn:aws:kinesis:"
+  #           -
+  #             Ref: "AWS::Region"
+  #           - ":"
+  #           -
+  #             Ref: "AWS::AccountId"
+  #           - ":stream/"
+  #           -
+  #             Ref: "KinesisDataStream"
+  #     FunctionName:
+  #       Fn::GetAtt:
+  #         - "PinpointKinesisDataStreamHandler"
+  #         - "Arn"
+  #     StartingPosition: "TRIM_HORIZON"
+  #     MaximumBatchingWindowInSeconds: 60
 
 
-  #### KINESIS FIREHOSE - Pinpoint
-  #######################################
-  PinpointEventStream:
-    Type: AWS::Pinpoint::EventStream
-    Properties:
-      ApplicationId: !If
-        - NeedsPinpointProjectId
-        - !Ref PinpointProject
-        - !Ref PinpointProjectId
-      DestinationStreamArn: !GetAtt KinesisDataStream.Arn
-      RoleArn: !GetAtt PinpointKinesisStreamRole.Arn
+  # #### KINESIS FIREHOSE - Pinpoint
+  # #######################################
+  # PinpointEventStream:
+  #   Type: AWS::Pinpoint::EventStream
+  #   Properties:
+  #     ApplicationId: !If
+  #       - NeedsPinpointProjectId
+  #       - !Ref PinpointProject
+  #       - !Ref PinpointProjectId
+  #     DestinationStreamArn: !GetAtt KinesisDataStream.Arn
+  #     RoleArn: !GetAtt PinpointKinesisStreamRole.Arn
 
 Outputs:
   TimestreamDatabase:
-    Description: "The Timestream Database "
+    Description: "The Timestream Database"
     Value: !Ref TimestreamDatabase
+  EventsBucketName:
+    Description: S3 Bucket Name where the Pinpoint Events are stored
+    Value: !Ref PinpointEventsBucket
